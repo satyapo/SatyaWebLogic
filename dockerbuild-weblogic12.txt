@@ -1,0 +1,49 @@
+# Docker installation
+yum install -y wget
+wget -qO- https://get.docker.com/ | sh
+service docker start
+
+# Git installation and download project
+yum install -y git
+
+mkdir -p /opt/myproject/weblogic
+cd /opt/myproject/weblogic
+
+git clone https://github.com/oracle/docker-images.git 
+
+#oraclceserver jre image build
+cd /opt/myprojects/weblogic/docker-images/OracleJava/java-8
+wget https://s3-us-west-2.amazonaws.com/satyabog/softwares/server-jre-8u121-linux-x64.tar.gz
+chmod 755 server-jre-8u121-linux-x64.tar.gz
+./build.sh
+
+# WebLogic 12.2.1 Image build (Binary installed)
+cd /opt/myprojects/weblogic/docker-images/OracleWebLogic/dockerfiles/12.2.1
+wget https://s3-us-west-2.amazonaws.com/satyabog/softwares/fmw_12.2.1.0.0_wls_Disk1_1of1.zip
+chmod 755 fmw_12.2.1.0.0_wls_Disk1_1of1.zip
+cd ../
+./buildDockerImage.sh -v 12.2.1 -g -s
+
+
+
+###################################################################################
+# Domain image creation and run the container 
+cd /opt/myprojects/weblogic/docker-images/OracleWebLogic/samples/1221-domain
+sed s/weblogic:12.2.1-developer/weblogic:12.2.1-generic Dockerfile
+# ./build.sh <password>
+
+docker build -t 1221-domain --build-arg ADMIN_PASSWORD=welcome1 .
+
+## To start the containerized Admin Server, run:
+docker run -d --name wlsadmin --hostname wlsadmin -p 8001:8001 1221-domain
+
+
+#***************************************************************************
+# Adding Machine, Start Node Manager, create Managed server and add MS to Machine
+## To start a containerized Managed Server to self-register with the Admin Server above, run
+
+docker run -d --link wlsadmin:wlsadmin -p 7001:7001 1221-domain createServer.sh
+###################################################################################
+
+##app deployment####
+TBD
